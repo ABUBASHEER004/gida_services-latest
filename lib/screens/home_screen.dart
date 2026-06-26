@@ -124,15 +124,15 @@ class HomeScreen extends StatelessWidget {
     "icon": Icons.electrical_services,
     },
     {
-      "name":"Animal clinic",
+      "name":"Animal Clinic",
     "icon": Icons.local_hospital,
     },
     {
-      "name":"chicken Booking, feeds and Drugs",
+      "name":"Chicken Booking, Feeds and Drugs",
     "icon": Icons.man_2,
     },
     {
-      "name":"Diagnostic centre",
+      "name":"Diagnostic Centre",
     "icon": Icons.local_hospital_outlined,
     },
     {
@@ -152,7 +152,7 @@ class HomeScreen extends StatelessWidget {
     "icon": Icons.man_2,
     },
     {
-      "name":"Cement seller",
+      "name":"Cement Seller",
       "icon": Icons.man_2,
     },
     {
@@ -200,7 +200,7 @@ class HomeScreen extends StatelessWidget {
     "icon": Icons.man_2,
     },
     {
-      "name":"Cloths/Baby cloths Seller",
+      "name":"Cloths/Baby Cloths Seller",
     "icon": Icons.woman_2,
     },
     {
@@ -361,4 +361,5 @@ class HomeScreen extends StatelessWidget {
     );
   }
 }
+
 

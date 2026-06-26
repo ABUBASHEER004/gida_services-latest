@@ -6,6 +6,7 @@ class ChatScreen extends StatefulWidget {
   final String senderId;
   final String receiverId;
   final String chatName;
+  final String senderName;
 
   const ChatScreen({
     super.key,
@@ -13,6 +14,8 @@ class ChatScreen extends StatefulWidget {
     required this.senderId,
     required this.receiverId,
     required this.chatName,
+    required this.senderName,
+
   });
 
   @override
@@ -84,12 +87,14 @@ class _ChatScreenState extends State<ChatScreen> {
           FirebaseFirestore.instance.collection('chats').doc(widget.chatId);
 
       await chatRef.collection('messages').add({
-        'senderId': widget.senderId,
-        'receiverId': widget.receiverId,
-        'message': message,
-        'timestamp': FieldValue.serverTimestamp(),
-        'isRead': false,
-      });
+  'senderId': widget.senderId,
+  'senderName': widget.senderName,
+  'receiverId': widget.receiverId,
+  'message': message,
+  'timestamp': FieldValue.serverTimestamp(),
+  'isDelivered': false,
+  'isRead': false,
+});
 
       await chatRef.set({
         'lastMessage': message,
@@ -98,11 +103,12 @@ class _ChatScreenState extends State<ChatScreen> {
       }, SetOptions(merge: true));
 
       await FirebaseFirestore.instance.collection('messages').add({
-        'senderId': widget.senderId,
-        'receiverId': widget.receiverId,
-        'message': message,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
+  'senderId': widget.senderId,
+  'senderName': widget.senderName,
+  'receiverId': widget.receiverId,
+  'message': message,
+  'timestamp': FieldValue.serverTimestamp(),
+});
 
       messageController.clear();
     } catch (e) {

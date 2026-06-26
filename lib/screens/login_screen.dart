@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:gida_services/services/notification_service.dart';
 
 import 'home_screen.dart';
 import 'provider_dashboard.dart';
@@ -103,6 +104,9 @@ By continuing, you agree to follow all rules of this platform.
 
       await setOnline(uid);
       await saveFCMToken(uid);
+      
+await NotificationService.initialize();
+NotificationService.listenForChats(uid);
 
       final doc =
           await FirebaseFirestore.instance.collection('users').doc(uid).get();
@@ -201,6 +205,10 @@ By continuing, you agree to follow all rules of this platform.
 
       await setOnline(uid);
       await saveFCMToken(uid);
+     await NotificationService.initialize();
+
+NotificationService.listenForChats(uid);
+NotificationService.listenForRequestUpdates(uid);
 
       final doc =
           await FirebaseFirestore.instance.collection('users').doc(uid).get();
@@ -268,7 +276,7 @@ By continuing, you agree to follow all rules of this platform.
           .createUserWithEmailAndPassword(email: email, password: password);
 
       final uid = credential.user!.uid;
-
+      await saveFCMToken(uid);
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'name': name,
         'email': email,

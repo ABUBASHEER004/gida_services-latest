@@ -1,9 +1,9 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-
 class NotificationService {
   static final FlutterLocalNotificationsPlugin notifications =
       FlutterLocalNotificationsPlugin();
@@ -43,57 +43,75 @@ class NotificationService {
   // =========================
   // SHOW LOCAL NOTIFICATION
   // =========================
-  static Future<void> showNotification(
-    String title,
-    String body,
-  ) async {
-    const android = AndroidNotificationDetails(
-      'chat_channel',
-      'Chat Notifications',
-      channelDescription: 'Notifications for chats and updates',
-      importance: Importance.max,
-      priority: Priority.high,
-    );
+ static Future<void> showNotification(
+  String title,
+  String body,
+) async {
+  const AndroidNotificationDetails androidDetails =
+      AndroidNotificationDetails(
+    'chat_channel',
+    'Chat Notifications',
+    channelDescription: 'Chat Messages',
+    importance: Importance.max,
+    priority: Priority.high,
+    playSound: true,
+    enableVibration: true,
+  );
 
-    await notifications.show(
-      DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      title,
-      body,
-      const NotificationDetails(
-        android: android,
-      ),
-    );
-  }
+  const NotificationDetails notificationDetails =
+      NotificationDetails(
+    android: androidDetails,
+  );
+
+  await notifications.show(
+    DateTime.now().millisecondsSinceEpoch ~/ 1000,
+    title,
+    body,
+    notificationDetails,
+  );
+}
 
   // =========================
   // USER / PROVIDER CHATS
   // =========================
   static void listenForChats(String receiverId) {
-    _chatSub?.cancel();
+  _chatSub?.cancel();
 
-    _chatSub = FirebaseFirestore.instance
-        .collection('messages')
-        .where('receiverId', isEqualTo: receiverId)
-        .snapshots()
-        .listen((snapshot) {
-      for (final change in snapshot.docChanges) {
-        if (change.type != DocumentChangeType.added) continue;
+  _chatSub = FirebaseFirestore.instance
+      .collection('messages')
+      .where('receiverId', isEqualTo: receiverId)
+      .snapshots()
+      .listen((snapshot) async {
+    for (final change in snapshot.docChanges) {
+      if (change.type != DocumentChangeType.added) continue;
 
-        final data =
-            change.doc.data() as Map<String, dynamic>?;
+      final data = change.doc.data() as Map<String, dynamic>?;
 
-        if (data == null) continue;
+      if (data == null) continue;
 
-        showNotification(
-          "New Message",
-          data['message']?.toString() ??
-              data['text']?.toString() ??
-              "You received a new message",
-        );
+      // Don't notify for your own messages
+      if (data['senderId'] == receiverId) continue;
+
+      final senderId = data['senderId'];
+
+      final senderDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(senderId)
+          .get();
+
+      String senderName = "New Message";
+
+      if (senderDoc.exists) {
+        senderName = senderDoc.data()?['name'] ?? senderName;
       }
-    });
-  }
 
+      await showNotification(
+        senderName,
+        data['message'] ?? "",
+      );
+    }
+  });
+}
   // =========================
   // ADMIN SUPPORT CHAT
   // =========================
@@ -162,9 +180,27 @@ class NotificationService {
   // =========================
   // SAVE DEVICE TOKEN
   // =========================
-  static Future<String?> getToken() async {
-    return await FirebaseMessaging.instance.getToken();
+ 
+
+
+
+static Future<String?> getToken() async {
+
+  if (kIsWeb) {
+
+    return await FirebaseMessaging.instance.getToken(
+
+      vapidKey: "BIbm1dX1QeWGL4nkDkb7G5dAN0bkxl_XbliKx8nlA7bEH8lB81w3MKQW8IG1uzcJMbWPydr0_GGNjQvHV-yOna8",
+
+    );
+
   }
+
+
+
+  return await FirebaseMessaging.instance.getToken();
+
+}
 
   // =========================
   // CLEANUP

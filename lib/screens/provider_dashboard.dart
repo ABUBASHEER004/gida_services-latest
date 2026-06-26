@@ -38,6 +38,8 @@ Future<void> saveFcmToken() async {
   try {
     final token = await FirebaseMessaging.instance.getToken();
 
+    debugPrint("FCM TOKEN: $token");
+
     if (token != null) {
       await _firestore
           .collection('providers')
@@ -45,6 +47,8 @@ Future<void> saveFcmToken() async {
           .set({
         'fcmToken': token,
       }, SetOptions(merge: true));
+
+      debugPrint("Token saved successfully");
     }
   } catch (e) {
     debugPrint("FCM Token Error: $e");
@@ -274,11 +278,12 @@ void openAdminChat() async {
   Navigator.push(
     context,
     MaterialPageRoute(
-     builder: (_) => ChatScreen(
+    builder: (_) => ChatScreen(
   chatId: chatId,
   senderId: providerId,
   receiverId: "ADMIN_SUPPORT",
   chatName: "ADMIN SUPPORT",
+  senderName: widget.providerName,
 ),
     ),
   );
@@ -333,6 +338,7 @@ void openAdminChat() async {
   senderId: widget.providerId,
   receiverId: userId,
   chatName: userName,
+  senderName: widget.providerName,
 ),
     ),
   );

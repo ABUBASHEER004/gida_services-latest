@@ -91,6 +91,9 @@ class ChatInboxScreen extends StatelessWidget {
   senderId: currentUserId,
   receiverId: otherUserId,
   chatName: otherUserName,
+  senderName: participantNames[currentUserId] ?? "User",
+
+
 ),
                     ),
                   );

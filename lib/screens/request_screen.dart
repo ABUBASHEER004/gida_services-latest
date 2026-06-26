@@ -31,7 +31,19 @@ class _RequestScreenState extends State<RequestScreen>
 
   bool loading = false;
   bool isOnline = false;
+Future<String> getCurrentUserName() async {
+  final doc = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(widget.userId)
+      .get();
 
+  if (!doc.exists) {
+    return "Customer";
+  }
+
+  final data = doc.data() as Map<String, dynamic>;
+  return data['name'] ?? "Customer";
+}
   // =========================
   // FORMAT LAST SEEN
   // =========================
@@ -75,7 +87,26 @@ class _RequestScreenState extends State<RequestScreen>
       'lastSeen': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
+Future<void> saveFcmToken() async {
+  try {
+    final token = await NotificationService.getToken();
 
+    debugPrint("USER FCM TOKEN: $token");
+
+    if (token != null) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.userId)
+          .set({
+        'fcmToken': token,
+      }, SetOptions(merge: true));
+
+      debugPrint("User token saved successfully");
+    }
+  } catch (e) {
+    debugPrint("FCM Error: $e");
+  }
+}
  @override
 void initState() {
   super.initState();
@@ -83,6 +114,8 @@ void initState() {
   WidgetsBinding.instance.addObserver(this);
 
   updateUserStatus(true);
+
+  saveFcmToken();
 
   NotificationService.listenForChats(widget.userId);
 }
@@ -203,30 +236,50 @@ void initState() {
   // =========================
   // CHAT WITH PROVIDER
   // =========================
-  void openChat() {
-    final chatId = widget.userId.compareTo(widget.providerId) < 0
-        ? '${widget.userId}_${widget.providerId}'
-        : '${widget.providerId}_${widget.userId}';
+  Future<void> openChat() async {
+  final senderName = await getCurrentUserName();
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-     builder: (_) => ChatScreen(
-  chatId: chatId,
-  senderId: widget.userId,
-  receiverId: widget.providerId,
-  chatName: widget.providerName,
-),
+  final chatId = widget.userId.compareTo(widget.providerId) < 0
+      ? '${widget.userId}_${widget.providerId}'
+      : '${widget.providerId}_${widget.userId}';
+
+  await FirebaseFirestore.instance
+      .collection('chats')
+      .doc(chatId)
+      .set({
+    'participants': [
+      widget.userId,
+      widget.providerId,
+    ],
+    'participantNames': {
+      widget.userId: senderName,
+      widget.providerId: widget.providerName,
+    },
+    'updatedAt': FieldValue.serverTimestamp(),
+  }, SetOptions(merge: true));
+
+  if (!mounted) return;
+
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => ChatScreen(
+        chatId: chatId,
+        senderId: widget.userId,
+        receiverId: widget.providerId,
+        chatName: widget.providerName,
+        senderName: senderName,
       ),
-    );
-  }
+    ),
+  );
+}
 
   // =========================
   // ADMIN CHAT (FIXED)
   // =========================
   void openAdminChat() async {
     const adminId = "ADMIN_SUPPORT";
-
+final senderName = await getCurrentUserName();
     final chatId = widget.userId.compareTo(adminId) < 0
         ? "${widget.userId}_$adminId"
         : "${adminId}_${widget.userId}";
@@ -241,9 +294,9 @@ void initState() {
   ],
 
   'participantNames': {
-    widget.userId: "Customer",
-    adminId: "ADMIN SUPPORT",
-  },
+  widget.userId: senderName,
+  adminId: "ADMIN SUPPORT",
+},
 
   'lastMessage': '',
   'updatedAt': FieldValue.serverTimestamp(),
@@ -259,6 +312,8 @@ void initState() {
   senderId: widget.userId,
   receiverId: adminId,
   chatName: "ADMIN SUPPORT",
+  senderName: senderName,
+
 ),
       ),
     );
@@ -510,3 +565,4 @@ void initState() {
     );
   }
 }
+

@@ -13,6 +13,7 @@ class ProviderLogin extends StatefulWidget {
   State<ProviderLogin> createState() => _ProviderLoginState();
 }
 
+
 class _ProviderLoginState extends State<ProviderLogin> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
@@ -54,6 +55,16 @@ class _ProviderLoginState extends State<ProviderLogin> {
 // SAVE FCM TOKEN
 // =========================
 final token = await FirebaseMessaging.instance.getToken();
+
+debugPrint("==================================");
+debugPrint("PROVIDER FCM TOKEN: $token");
+debugPrint("==================================");
+
+await NotificationService.initialize();
+
+NotificationService.listenForChats(uid);
+NotificationService.listenForRequestUpdates(uid);
+
 
 await FirebaseFirestore.instance
     .collection('providers')
@@ -129,6 +140,7 @@ await FirebaseFirestore.instance
 
     // 🚀 GO TO DASHBOARD
     await NotificationService.initialize();
+    NotificationService.listenForRequestUpdates(uid);
     
     Navigator.pushReplacement(
       context,
@@ -197,4 +209,6 @@ await FirebaseFirestore.instance
     );
   }
 }
+
+
 
