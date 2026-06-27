@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'admin_dashboard.dart';
 
@@ -48,13 +49,24 @@ try {
   'isOnline': true,
   'lastSeen': FieldValue.serverTimestamp(),
 }, SetOptions(merge: true));
+final token = await FirebaseMessaging.instance.getToken();
 
-  final doc = await FirebaseFirestore.instance
-      .collection('users')
-      .doc(uid)
-      .get();
+await FirebaseFirestore.instance
+    .collection("admins")
+    .doc("ADMIN_SUPPORT")
+    .set({
+  "uid": uid,
+  "name": "ADMIN SUPPORT",
+  "email": email,
+  "fcmToken": token,
+  "isOnline": true,
+  "lastSeen": FieldValue.serverTimestamp(),
+}, SetOptions(merge: true));
 
-  if (!mounted) return;
+final doc = await FirebaseFirestore.instance
+    .collection('users')
+    .doc(uid)
+    .get();
 
   // DEBUG POPUP
   await showDialog(

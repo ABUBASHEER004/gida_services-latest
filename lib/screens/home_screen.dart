@@ -208,7 +208,7 @@ class HomeScreen extends StatelessWidget {
     "icon": Icons.woman_2,
     },
     {
-      "name":"Printing, Writing and Reading Materials(Books) Seller",
+      "name":"Printing, Writing and Reading Materials(Books)",
     "icon": Icons.woman_2,
     },
     {
@@ -256,11 +256,11 @@ class HomeScreen extends StatelessWidget {
     "icon": Icons.man_2,
     },
     {
-      "name":"Rubber Home Equipment Seller ",
+      "name":"Rubber Home Equipment Seller",
     "icon": Icons.woman_2,
     },
     {
-      "name":"Palm oil/Groundnut oil seller",
+      "name":"Palm oil/Groundnut oil Seller",
     "icon": Icons.woman_2,
     },
     {

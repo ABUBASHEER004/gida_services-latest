@@ -23,3 +23,14 @@ firebase.initializeApp({
 
 
 const messaging = firebase.messaging();
+messaging.onBackgroundMessage(function(payload) {
+  console.log("Background message:", payload);
+
+  self.registration.showNotification(
+    payload.notification?.title || "New Message",
+    {
+      body: payload.notification?.body || "",
+      icon: "/icons/Icon-192.png",
+    }
+  );
+});

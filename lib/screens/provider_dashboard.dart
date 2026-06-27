@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import '../services/notification_service.dart';
+import 'customer_chats_screen.dart';
 
 import 'chat_screen.dart';
 import 'login_screen.dart';
@@ -29,6 +30,17 @@ class _ProviderDashboardState extends State<ProviderDashboard>
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+void openCustomerChats() {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => CustomerChatsScreen(
+        providerId: widget.providerId,
+        providerName: widget.providerName,
+      ),
+    ),
+  );
+}
 StreamSubscription? _messageListener;
 
   bool isOnline = false;
@@ -101,6 +113,9 @@ toggleStatus(true);
 
   loadProviderData();
   saveFcmToken();
+  NotificationService.listenForChats(widget.providerId);
+NotificationService.listenForAdminChats(widget.providerId);
+NotificationService.listenForRequestUpdates(widget.providerId);
 
   listenForNewMessages();
 
@@ -119,11 +134,13 @@ void didChangeAppLifecycleState(AppLifecycleState state) {
   );
 }
 
-  @override
+ @override
 void dispose() {
   WidgetsBinding.instance.removeObserver(this);
 
   toggleStatus(false);
+
+  NotificationService.dispose();
 
   _messageListener?.cancel();
 
@@ -132,6 +149,17 @@ void dispose() {
   serviceController.dispose();
 
   super.dispose();
+}
+Future<void> openGeneralChats() async {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => CustomerChatsScreen(
+  providerId: widget.providerId,
+  providerName: widget.providerName,
+),
+    ),
+  );
 }
 //
 
@@ -513,15 +541,38 @@ Future<void> rejectRequest(String id) async {
       appBar: AppBar(
         title: Text("Provider: ${widget.providerName}"),
         actions: [
-          IconButton(icon: const Icon(Icons.edit), onPressed: openEditProfile),
-          IconButton(icon: const Icon(Icons.logout), onPressed: logout),
-          Row(
-            children: [
-              Text(isOnline ? "Online" : "Offline"),
-              Switch(value: isOnline, onChanged: toggleStatus),
-            ],
-          ),
-        ],
+  IconButton(
+    icon: const Icon(Icons.chat),
+    tooltip: "Customer Chats",
+    onPressed: openCustomerChats,
+  ),
+
+  IconButton(
+    icon: const Icon(Icons.support_agent),
+    tooltip: "Admin Support",
+    onPressed: openAdminChat,
+  ),
+
+  IconButton(
+    icon: const Icon(Icons.edit),
+    onPressed: openEditProfile,
+  ),
+
+  IconButton(
+    icon: const Icon(Icons.logout),
+    onPressed: logout,
+  ),
+
+  Row(
+    children: [
+      Text(isOnline ? "Online" : "Offline"),
+      Switch(
+        value: isOnline,
+        onChanged: toggleStatus,
+      ),
+    ],
+  ),
+],
       ),
 
       body: Column(
@@ -547,13 +598,13 @@ Future<void> rejectRequest(String id) async {
                 fontSize: 18,
               ),
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 8),
             Text("Kuda Microfinance Bank"),
             SizedBox(height: 8),
             SelectableText(
               "2082918233",
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Colors.green,
               ),
@@ -613,47 +664,37 @@ Future<void> rejectRequest(String id) async {
                             const SizedBox(height: 10),
 
                             Wrap(
-                              spacing: 8,
-                              children: [
-                                ElevatedButton.icon(
-                                  onPressed: openAdminChat,
-                                  icon: const Icon(Icons.support_agent),
-                                  label: const Text("Admin"),
-                                ),
-                                
-                                ElevatedButton.icon(
-                                  onPressed: userId.isEmpty ? null : () => openChat(userId),
-                                  icon: const Icon(Icons.chat),
-                                  label: const Text("Chat"),
-                                ),
+  spacing: 8,
+  children: [
 
-                                if (status == 'pending')
-                                  ElevatedButton(
-                                    onPressed: () => acceptRequest(id),
-                                    child: const Text("Accept"),
-                                  ),
+    if (status == 'pending')
+      ElevatedButton(
+        onPressed: () => acceptRequest(id),
+        child: const Text("Accept"),
+      ),
 
-                                if (status == 'pending')
-                                  ElevatedButton(
-                                    onPressed: () => rejectRequest(id),
-                                    child: const Text("Reject"),
-                                  ),
+    if (status == 'pending')
+      ElevatedButton(
+        onPressed: () => rejectRequest(id),
+        child: const Text("Reject"),
+      ),
 
-                                if (status == 'accepted')
-                                  ElevatedButton(
-                                    onPressed: () => showCompleteJobDialog(id),
-                                    child: const Text("Done"),
-                                  ),
+    if (status == 'accepted')
+      ElevatedButton(
+        onPressed: () => showCompleteJobDialog(id),
+        child: const Text("Done"),
+      ),
 
-                                if (status == 'completed' &&
-                                    data['providerMarkedPaid'] != true)
-                                  ElevatedButton.icon(
-                                    onPressed: () => markCommissionPaid(id),
-                                    icon: const Icon(Icons.check),
-                                    label: const Text("I Have Paid"),
-                                  ),
-                              ],
-                            ),
+    if (status == 'completed' &&
+        data['providerMarkedPaid'] != true)
+      ElevatedButton.icon(
+        onPressed: () => markCommissionPaid(id),
+        icon: const Icon(Icons.check),
+        label: const Text("I Have Paid"),
+      ),
+  ],
+)
+                            
                           ],
                         ),
                       ),

@@ -68,36 +68,53 @@ bool isAdmin(String senderId) {
   // SEND MESSAGE (FIXED)
   // =========================
   Future<void> sendAdminMessage() async {
-    final message = messageController.text.trim();
+  final text = messageController.text.trim();
 
-    if (message.isEmpty) return;
+  if (text.isEmpty) return;
 
-    final safeChatId = chatId; // forces validation
+  try {
+    final safeChatId = chatId;
 
-    try {
-      final ref = FirebaseFirestore.instance
-          .collection('chats')
-          .doc(safeChatId);
+    // Reply to provider if this is a provider chat,
+    // otherwise reply to the customer.
+    final receiverId = widget.providerId.isNotEmpty
+        ? widget.providerId
+        : widget.userId;
 
-      await ref.collection('messages').add({
-        'senderId': adminId,
-        'message': message,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
+    final ref = FirebaseFirestore.instance
+        .collection('chats')
+        .doc(safeChatId);
 
-      await ref.set({
-        'lastMessage': message,
-        'lastMessageTime': FieldValue.serverTimestamp(),
-        'participants': [adminId, widget.userId, widget.providerId],
-      }, SetOptions(merge: true));
+    await ref.collection('messages').add({
+      'senderId': adminId,
+      'senderName': 'ADMIN SUPPORT',
+      'receiverId': receiverId,
+      'message': text,
+      'timestamp': FieldValue.serverTimestamp(),
+      'isDelivered': false,
+      'isRead': false,
+    });
 
-      messageController.clear();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
-    }
+    await ref.set({
+      'participants': [
+        adminId,
+        widget.userId,
+        if (widget.providerId.isNotEmpty) widget.providerId,
+      ],
+      'lastMessage': text,
+      'lastMessageTime': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    messageController.clear();
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error: $e")),
+    );
   }
+}
 
   @override
   void dispose() {
