@@ -16,52 +16,52 @@ class NotificationService {
   // INITIALIZE
   // =========================
  static Future<void> initialize() async {
+  try {
+    const AndroidInitializationSettings android =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
 
-  const AndroidInitializationSettings android =
-      AndroidInitializationSettings('@mipmap/ic_launcher');
+    const InitializationSettings settings = InitializationSettings(
+      android: android,
+    );
 
-  const InitializationSettings settings =
-      InitializationSettings(
-    android: android,
-  );
+    await notifications.initialize(settings);
 
-  await notifications.initialize(settings);
+    final androidPlugin =
+        notifications.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
 
-  final androidPlugin =
-      notifications.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
+    await androidPlugin?.createNotificationChannel(
+      const AndroidNotificationChannel(
+        'gida_chat_channel',
+        'Chat Notifications',
+        description: 'Notifications for chat messages',
+        importance: Importance.high,
+      ),
+    );
 
-  await androidPlugin?.createNotificationChannel(
-    const AndroidNotificationChannel(
-      'gida_chat_channel',
-      'Chat Notifications',
-      description: 'Notifications for chat messages',
-      importance: Importance.high,
-    ),
-  );
+    await FirebaseMessaging.instance.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
 
-  await FirebaseMessaging.instance.requestPermission(
-    alert: true,
-    badge: true,
-    sound: true,
-  );
+    FirebaseMessaging.onMessage.listen((message) {
+      final title =
+          message.notification?.title ??
+          message.data['title'] ??
+          "New Message";
 
-  FirebaseMessaging.onMessage.listen((message) {
+      final body =
+          message.notification?.body ??
+          message.data['body'] ??
+          "";
 
-    final title =
-        message.notification?.title ??
-        message.data['title'] ??
-        "New Message";
-
-    final body =
-        message.notification?.body ??
-        message.data['body'] ??
-        "";
-
-    showNotification(title, body);
-  });
+      showNotification(title, body);
+    });
+  } catch (e) {
+    debugPrint("Notification initialization failed: $e");
+  }
 }
-
   // =========================
   // SHOW LOCAL NOTIFICATION
   // =========================

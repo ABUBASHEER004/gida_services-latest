@@ -216,12 +216,40 @@ class HomeScreen extends StatelessWidget {
     "icon": Icons.woman_2,
     },
     {
-      "name":"Provision Store",
-    "icon": Icons.man_2,
+      "name":"Solar Installer",
+      "icon": Icons.solar_power,
+    },
+    {
+      "name":"Satellite Dish Repair",
+      "icon": Icons.satellite_alt,
+    },
+    {
+      "name":"Event Centre",
+      "icon": Icons.house,
+    },
+    {
+      "name":"Laptop Seller",
+      "icon": Icons.laptop_mac,
+    },
+    {
+      "name":"Phone Seller",
+      "icon": Icons.phone_android,
+    },
+    {
+      "name":"TV Repair",
+      "icon": Icons.tv,
+    },
+    {
+      "name":"Flowers Seller",
+      "icon": Icons.man,
     },
     {
       "name":"Islamic Lesson Teacher",
     "icon": Icons.man_2,
+    },
+    {
+      "name":"Rental Services",
+    "icon": Icons.roofing,
     },
     {
       "name":"Beds Seller",

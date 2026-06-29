@@ -333,7 +333,7 @@ FirebaseMessaging.onMessage.listen((message) {
   // COMPLETE JOB
   // =========================
   Future<void> markAsDone(String id, double amount) async {
-    const commissionRate = 0.10;
+    const commissionRate = 0.30;
 
     final commission = amount * commissionRate;
     final providerEarning = amount - commission;

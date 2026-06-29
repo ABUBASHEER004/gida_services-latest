@@ -33,6 +33,7 @@ class _ProviderRegisterState extends State<ProviderRegister> {
     "Wielding",
     "Gas Refill",
     "Cleaning",
+    "Rental Services",
     "Laundry",
     "Lesson Teacher",
     "Book Barbing Queue",
@@ -50,6 +51,13 @@ class _ProviderRegisterState extends State<ProviderRegister> {
     "Food Delivery",
     "Napep Booking",
     "Electronic Appliances Repair",
+    "Solar Installer",
+    "Satellite Dish Repair",
+    "Event Centre",
+    "Laptop Seller",
+    "Phone Seller",
+    "TV Repair",
+    "Flowers Seller",
     "Animal Clinic",
     "Chicken Booking, Feeds and Drugs",
     "Diagnostic Centre",
@@ -73,7 +81,6 @@ class _ProviderRegisterState extends State<ProviderRegister> {
     "Make-up Saloon",
     "Printing, Writing and Reading Materials(Books)",
     "Electronic Appliances Seller",
-    "Provision Store",
     "Islamic Lesson Teacher",
     "Beds Seller",
     "Furniture Seller",
@@ -267,7 +274,7 @@ By registering, you agree to follow these rules.
           children: [
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(labelText: "Full Name"),
+              decoration: const InputDecoration(labelText: "Full Name or Business Name"),
             ),
             const SizedBox(height: 10),
 

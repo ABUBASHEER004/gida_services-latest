@@ -63,7 +63,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '880257631582',
     projectId: 'gida-service',
     storageBucket: 'gida-service.firebasestorage.app',
-    iosClientId: '880257631582-3k7hj6mg62g2kus4ttaavpapnhjcvajg.apps.googleusercontent.com',
+    iosClientId:
+        '880257631582-3k7hj6mg62g2kus4ttaavpapnhjcvajg.apps.googleusercontent.com',
     iosBundleId: 'com.example.gidaServices',
   );
   static const FirebaseOptions macos = FirebaseOptions(
@@ -72,7 +73,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '880257631582',
     projectId: 'gida-service',
     storageBucket: 'gida-service.firebasestorage.app',
-    iosClientId: '880257631582-3k7hj6mg62g2kus4ttaavpapnhjcvajg.apps.googleusercontent.com',
+    iosClientId:
+        '880257631582-3k7hj6mg62g2kus4ttaavpapnhjcvajg.apps.googleusercontent.com',
     iosBundleId: 'com.example.gidaServices',
   );
 
