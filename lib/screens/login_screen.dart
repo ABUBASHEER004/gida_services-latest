@@ -15,16 +15,13 @@ class LoginScreen extends StatefulWidget {
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
+
 Future<void> saveFCMToken(String uid) async {
-  final token =
-      await FirebaseMessaging.instance.getToken();
+  final token = await FirebaseMessaging.instance.getToken();
 
   if (token == null) return;
 
-  await FirebaseFirestore.instance
-      .collection('users')
-      .doc(uid)
-      .set({
+  await FirebaseFirestore.instance.collection('users').doc(uid).set({
     'fcmToken': token,
   }, SetOptions(merge: true));
 }
@@ -36,6 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // NEW FIELDS
   final phoneController = TextEditingController();
+  final addressController = TextEditingController();
   final locationController = TextEditingController();
 
   bool loading = false;
@@ -104,9 +102,9 @@ By continuing, you agree to follow all rules of this platform.
 
       await setOnline(uid);
       await saveFCMToken(uid);
-      
-await NotificationService.initialize();
-NotificationService.listenForChats(uid);
+
+      await NotificationService.initialize();
+      NotificationService.listenForChats(uid);
 
       final doc =
           await FirebaseFirestore.instance.collection('users').doc(uid).get();
@@ -205,10 +203,10 @@ NotificationService.listenForChats(uid);
 
       await setOnline(uid);
       await saveFCMToken(uid);
-     await NotificationService.initialize();
+      await NotificationService.initialize();
 
-NotificationService.listenForChats(uid);
-NotificationService.listenForRequestUpdates(uid);
+      NotificationService.listenForChats(uid);
+      NotificationService.listenForRequestUpdates(uid);
 
       final doc =
           await FirebaseFirestore.instance.collection('users').doc(uid).get();
@@ -248,12 +246,14 @@ NotificationService.listenForRequestUpdates(uid);
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
     final phone = phoneController.text.trim();
+    final address = addressController.text.trim();
     final location = locationController.text.trim();
 
     if (name.isEmpty ||
         email.isEmpty ||
         password.isEmpty ||
         phone.isEmpty ||
+        address.isEmpty ||
         location.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Fill all fields")),
@@ -281,6 +281,7 @@ NotificationService.listenForRequestUpdates(uid);
         'name': name,
         'email': email,
         'phone': phone,
+        'address': address,
         'location': location,
         'role': 'user',
         'status': 'active',
@@ -311,135 +312,128 @@ NotificationService.listenForRequestUpdates(uid);
     passwordController.dispose();
     nameController.dispose();
     phoneController.dispose();
+    addressController.dispose();
     locationController.dispose();
     super.dispose();
   }
 
   // =========================
- @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    appBar: AppBar(
-      title: Text(isRegister ? "Register" : "Login"),
-    ),
-    body: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(isRegister ? "Register" : "Login"),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            if (isRegister)
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: "Name"),
+              ),
 
-          if (isRegister)
             TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: "Name"),
+              controller: emailController,
+              decoration: const InputDecoration(labelText: "Email"),
             ),
 
-          TextField(
-            controller: emailController,
-            decoration: const InputDecoration(labelText: "Email"),
-          ),
-
-          TextField(
-            controller: passwordController,
-            obscureText: true,
-            decoration: const InputDecoration(labelText: "Password"),
-          ),
-
-          if (isRegister)
             TextField(
-              controller: phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: "Phone Number"),
+              controller: passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: "Password"),
             ),
 
             if (isRegister)
-            TextField(
-              controller: phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: "Address"),
-            ),
+              TextField(
+                controller: phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(labelText: "Phone Number"),
+              ),
 
-          if (isRegister)
-            TextField(
-              controller: locationController,
-              decoration: const InputDecoration(labelText: "Location"),
-            ),
+            if (isRegister)
+  TextField(
+    controller: addressController,
+    decoration: const InputDecoration(labelText: "Address"),
+  ),
 
-          const SizedBox(height: 15),
+            if (isRegister)
+              TextField(
+                controller: locationController,
+                decoration: const InputDecoration(labelText: "Location"),
+              ),
 
-          // =========================
-          // ✅ TERMS CHECKBOX (ADDED)
-          if (isRegister)
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Checkbox(
-                  value: acceptedTerms,
-                  onChanged: (value) {
-                    setState(() {
-                      acceptedTerms = value ?? false;
-                    });
-                  },
-                ),
+            const SizedBox(height: 15),
 
-                Expanded(
-                  child: GestureDetector(
-                    onTap: showTerms,
-                    child: const Text(
-                      "I agree to Terms & Conditions",
-                      style: TextStyle(
-                        decoration: TextDecoration.underline,
-                        color: Colors.blue,
+            // =========================
+            // ✅ TERMS CHECKBOX (ADDED)
+            if (isRegister)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Checkbox(
+                    value: acceptedTerms,
+                    onChanged: (value) {
+                      setState(() {
+                        acceptedTerms = value ?? false;
+                      });
+                    },
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: showTerms,
+                      child: const Text(
+                        "I agree to Terms & Conditions",
+                        style: TextStyle(
+                          decoration: TextDecoration.underline,
+                          color: Colors.blue,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-
-          const SizedBox(height: 20),
-
-          if (loading)
-            const CircularProgressIndicator()
-          else ...[
-            ElevatedButton(
-              onPressed: isRegister ? register : login,
-              child: Text(isRegister ? "Register" : "Login"),
-            ),
-
-            const SizedBox(height: 10),
-
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
+                ],
               ),
-              icon: const Icon(Icons.admin_panel_settings),
-              label: const Text("Admin Login"),
-              onPressed: adminLogin,
-            ),
 
-            TextButton(
-              onPressed: () => setState(() => isRegister = !isRegister),
-              child: Text(isRegister ? "Go to Login" : "Create Account"),
-            ),
+            const SizedBox(height: 20),
 
-            OutlinedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const ProviderLogin(),
-                  ),
-                );
-              },
-              child: const Text("Provider Login"),
-            ),
+            if (loading)
+              const CircularProgressIndicator()
+            else ...[
+              ElevatedButton(
+                onPressed: isRegister ? register : login,
+                child: Text(isRegister ? "Register" : "Login"),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                ),
+                icon: const Icon(Icons.admin_panel_settings),
+                label: const Text("Admin Login"),
+                onPressed: adminLogin,
+              ),
+              TextButton(
+                onPressed: () => setState(() => isRegister = !isRegister),
+                child: Text(isRegister ? "Go to Login" : "Create Account"),
+              ),
+              OutlinedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ProviderLogin(),
+                    ),
+                  );
+                },
+                child: const Text("Provider Login"),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
-}
-
 
 
