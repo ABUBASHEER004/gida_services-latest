@@ -3,11 +3,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:gida_services/services/notification_service.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 import 'home_screen.dart';
 import 'provider_dashboard.dart';
 import 'provider_login.dart';
 import 'admin_dashboard.dart';
+import '../services/profile_image_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -21,7 +24,10 @@ Future<void> saveFCMToken(String uid) async {
 
   if (token == null) return;
 
-  await FirebaseFirestore.instance.collection('users').doc(uid).set({
+  await FirebaseFirestore.instance
+      .collection('users')
+      .doc(uid)
+      .set({
     'fcmToken': token,
   }, SetOptions(merge: true));
 }
@@ -31,17 +37,72 @@ class _LoginScreenState extends State<LoginScreen> {
   final passwordController = TextEditingController();
   final nameController = TextEditingController();
 
-  // NEW FIELDS
+  // Registration fields
   final phoneController = TextEditingController();
   final addressController = TextEditingController();
   final locationController = TextEditingController();
 
   bool loading = false;
   bool isRegister = false;
-
-  // ✅ FIX: MISSING VARIABLE ADDED
   bool acceptedTerms = false;
 
+  // =========================
+  // PROFILE PICTURE
+  // =========================
+  File? selectedImage;
+
+  // =========================
+  // PICK PROFILE PICTURE
+  // =========================
+  Future<void> pickProfilePicture() async {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text("Take Photo"),
+                onTap: () async {
+                  Navigator.pop(context);
+
+                  final image =
+                      await ProfileImageService.pickFromCamera();
+
+                  if (image != null) {
+                    setState(() {
+                      selectedImage = image;
+                    });
+                  }
+                },
+              ),
+
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text("Choose from Gallery"),
+                onTap: () async {
+                  Navigator.pop(context);
+
+                  final image =
+                      await ProfileImageService.pickFromGallery();
+
+                  if (image != null) {
+                    setState(() {
+                      selectedImage = image;
+                    });
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // =========================
+  // SET USER ONLINE
   // =========================
   Future<void> setOnline(String uid) async {
     await FirebaseFirestore.instance.collection('users').doc(uid).set({
@@ -50,7 +111,9 @@ class _LoginScreenState extends State<LoginScreen> {
     }, SetOptions(merge: true));
   }
 
-  // ========================= TERMS DIALOG
+  // =========================
+  // TERMS & CONDITIONS
+  // =========================
   void showTerms() {
     showDialog(
       context: context,
@@ -67,19 +130,21 @@ class _LoginScreenState extends State<LoginScreen> {
 6. Data may be stored for service improvement.
 
 By continuing, you agree to follow all rules of this platform.
-            """,
+""",
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text("Close"),
-          )
+          ),
         ],
       ),
     );
   }
 
+  // =========================
+  // LOGIN
   // =========================
   Future<void> login() async {
     final email = emailController.text.trim();
@@ -96,58 +161,76 @@ By continuing, you agree to follow all rules of this platform.
 
     try {
       final credential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: email, password: password);
+          .signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
       final uid = credential.user!.uid;
 
       await setOnline(uid);
       await saveFCMToken(uid);
 
-      await NotificationService.initialize();
+      // Start notification listeners after login
       NotificationService.listenForChats(uid);
 
-      final doc =
-          await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
 
       final data = doc.data() ?? {};
-      final role = (data['role'] ?? 'user').toString().toLowerCase();
+
+      final role = (data['role'] ?? 'user')
+          .toString()
+          .toLowerCase();
+
       final name = data['name'] ?? 'User';
 
-      final status = (data['status'] ?? 'active').toString().toLowerCase();
+      final status = (data['status'] ?? 'active')
+          .toString()
+          .toLowerCase();
 
-      // BLOCK CHECK
       if (status == 'blocked') {
+        await FirebaseAuth.instance.signOut();
+
+        if (!mounted) return;
+
         setState(() => loading = false);
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Access Denied: Account blocked by admin"),
+            content: Text(
+              "Access Denied: Account blocked by admin",
+            ),
             backgroundColor: Colors.red,
           ),
         );
 
-        await FirebaseAuth.instance.signOut();
         return;
       }
 
-      // INACTIVE CHECK
       if (status == 'inactive') {
+        await FirebaseAuth.instance.signOut();
+
+        if (!mounted) return;
+
         setState(() => loading = false);
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Account deactivated. Contact admin."),
+            content: Text(
+              "Account deactivated. Contact admin.",
+            ),
             backgroundColor: Colors.orange,
           ),
         );
 
-        await FirebaseAuth.instance.signOut();
         return;
       }
 
       if (!mounted) return;
 
-      // NAVIGATION
       if (role == 'provider') {
         Navigator.pushAndRemoveUntil(
           context,
@@ -162,25 +245,34 @@ By continuing, you agree to follow all rules of this platform.
       } else if (role == 'admin') {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const AdminDashboard()),
+          MaterialPageRoute(
+            builder: (_) => const AdminDashboard(),
+          ),
           (route) => false,
         );
       } else {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          MaterialPageRoute(
+            builder: (_) => const HomeScreen(),
+          ),
           (route) => false,
         );
       }
     } catch (e) {
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Login failed: $e")),
+        SnackBar(
+          content: Text("Login failed: $e"),
+        ),
       );
     }
 
-    setState(() => loading = false);
+    if (mounted) {
+      setState(() => loading = false);
+    }
   }
-
   // =========================
   Future<void> adminLogin() async {
     final email = emailController.text.trim();
@@ -203,7 +295,6 @@ By continuing, you agree to follow all rules of this platform.
 
       await setOnline(uid);
       await saveFCMToken(uid);
-      await NotificationService.initialize();
 
       NotificationService.listenForChats(uid);
       NotificationService.listenForRequestUpdates(uid);

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'request_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class SearchProvidersScreen extends StatefulWidget {
   const SearchProvidersScreen({super.key});
@@ -238,6 +239,7 @@ class _SearchProvidersScreenState
         context,
         MaterialPageRoute(
           builder: (_) => RequestScreen(
+            providerPhoto: data['photoUrl'] ?? '',
             userId: currentUser.uid,
             providerId: data['uid'] ?? '',
             providerName: data['name'] ?? '',

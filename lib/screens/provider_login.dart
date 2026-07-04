@@ -60,11 +60,10 @@ debugPrint("==================================");
 debugPrint("PROVIDER FCM TOKEN: $token");
 debugPrint("==================================");
 
-await NotificationService.initialize();
 
 NotificationService.listenForChats(uid);
 NotificationService.listenForRequestUpdates(uid);
-
+ NotificationService.listenForAdminChats(uid);
 
 await FirebaseFirestore.instance
     .collection('providers')
@@ -139,8 +138,6 @@ await FirebaseFirestore.instance
     if (!mounted) return;
 
     // 🚀 GO TO DASHBOARD
-    await NotificationService.initialize();
-    NotificationService.listenForRequestUpdates(uid);
     
     Navigator.pushReplacement(
       context,
@@ -209,6 +206,7 @@ await FirebaseFirestore.instance
     );
   }
 }
+
 
 
 

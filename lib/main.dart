@@ -5,6 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'firebase_options.dart';
 import 'screens/splash_screen.dart';
 import 'services/notification_service.dart';
+import 'services/presence_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(
@@ -38,15 +39,77 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Register background message handler
   FirebaseMessaging.onBackgroundMessage(
     firebaseMessagingBackgroundHandler,
   );
 
-  // Initialize local notifications
   await NotificationService.initialize();
 
-  runApp(const GidaServicesApp());
+  // Run lifecycle wrapper
+  runApp(const AppLifecycleHandler());
+}
+
+class AppLifecycleHandler extends StatefulWidget {
+  const AppLifecycleHandler({super.key});
+
+  @override
+  State<AppLifecycleHandler> createState() =>
+      _AppLifecycleHandlerState();
+}
+
+class _AppLifecycleHandlerState
+    extends State<AppLifecycleHandler>
+    with WidgetsBindingObserver {
+
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addObserver(this);
+
+    PresenceService.setOnline();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+
+    PresenceService.setOffline();
+
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(
+      AppLifecycleState state) {
+
+    switch (state) {
+      case AppLifecycleState.resumed:
+        PresenceService.setOnline();
+        break;
+
+      case AppLifecycleState.inactive:
+        PresenceService.updateLastSeen();
+        break;
+
+      case AppLifecycleState.paused:
+        PresenceService.setOffline();
+        break;
+
+      case AppLifecycleState.detached:
+        PresenceService.setOffline();
+        break;
+
+      case AppLifecycleState.hidden:
+        PresenceService.setOffline();
+        break;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const GidaServicesApp();
+  }
 }
 
 class GidaServicesApp extends StatelessWidget {

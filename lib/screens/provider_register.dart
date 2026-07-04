@@ -1,6 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../services/profile_image_service.dart';
 
 import 'provider_dashboard.dart';
 
@@ -18,8 +22,17 @@ class _ProviderRegisterState extends State<ProviderRegister> {
   final phoneController = TextEditingController();
   final addressController = TextEditingController();
 
+  // NEW
+  final locationController = TextEditingController();
+
   bool loading = false;
   bool acceptedTerms = false;
+
+  // =========================
+  // PROFILE IMAGE
+  // =========================
+
+  File? selectedImage;
 
   final List<String> serviceCategories = const [
     "Waste Pickup",
@@ -67,7 +80,7 @@ class _ProviderRegisterState extends State<ProviderRegister> {
     "Carpentry Materials Seller",
     "Cement Seller",
     "Pharmacy",
-    "Fabrics(shadda/yadi) Dealer ",
+    "Fabrics(shadda/yadi) Dealer",
     "Abaya Seller",
     "Football Kits Seller",
     "Kitchen Utensils Seller",
@@ -90,18 +103,58 @@ class _ProviderRegisterState extends State<ProviderRegister> {
     "Grain Seller",
     "Yam Seller",
     "Fruits Seller",
-    "Rubber Home Equipment Seller ",
+    "Rubber Home Equipment Seller",
     "Palm oil/Groundnut oil Seller",
     "Petrol Black Marketer",
     "Women Beauty Products Seller",
     "Painter",
-
-
-
-  
   ];
 
   String selectedService = "Waste Pickup";
+
+  Future<void> pickProfilePicture() async {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text("Take Photo"),
+                onTap: () async {
+                  Navigator.pop(context);
+
+                  final image = await ProfileImageService.pickFromCamera();
+
+                  if (image != null) {
+                    setState(() {
+                      selectedImage = image;
+                    });
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text("Choose from Gallery"),
+                onTap: () async {
+                  Navigator.pop(context);
+
+                  final image = await ProfileImageService.pickFromGallery();
+
+                  if (image != null) {
+                    setState(() {
+                      selectedImage = image;
+                    });
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   // ========================= TERMS DIALOG (FIXED LOCATION)
   void showTermsDialog() {
@@ -110,19 +163,21 @@ class _ProviderRegisterState extends State<ProviderRegister> {
       builder: (_) => AlertDialog(
         title: const Text("Terms & Conditions"),
         content: const SingleChildScrollView(
-          child: Text("""
-📌 PROVIDER TERMS & CONDITIONS
+          child: Text(
+            """
+1. Provide accurate information.
 
-1. You must provide accurate information.
-2. Fake accounts or fake services are not allowed.
-3. Be respectful to customers.
-4. Cancelled jobs without reason may lead to suspension.
-5. Payments must follow platform rules.
-6. Fraud or abuse leads to permanent ban.
-7. Admin can suspend accounts at any time.
+2. Fake businesses are prohibited.
 
-By registering, you agree to follow these rules.
-"""),
+3. Treat customers respectfully.
+
+4. Fraud leads to permanent suspension.
+
+5. Admin may suspend providers violating platform rules.
+
+By registering you agree to these conditions.
+""",
+          ),
         ),
         actions: [
           TextButton(
@@ -134,10 +189,12 @@ By registering, you agree to follow these rules.
     );
   }
 
-
   // =========================
   // REGISTER PROVIDER
   // =========================
+  // =========================
+// REGISTER PROVIDER
+// =========================
   Future<void> registerProvider() async {
     if (loading) return;
 
@@ -146,23 +203,26 @@ By registering, you agree to follow these rules.
     final password = passwordController.text.trim();
     final phone = phoneController.text.trim();
     final address = addressController.text.trim();
+    final location = locationController.text.trim();
 
-    // OLD VALIDATION (kept)
+    // Validation
     if (name.isEmpty ||
         email.isEmpty ||
         password.isEmpty ||
         phone.isEmpty ||
-        address.isEmpty) {
+        address.isEmpty ||
+        location.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please fill all fields")),
       );
       return;
     }
 
-    // NEW TERMS VALIDATION (added)
     if (!acceptedTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("You must accept Terms & Conditions")),
+        const SnackBar(
+          content: Text("You must accept Terms & Conditions"),
+        ),
       );
       return;
     }
@@ -170,6 +230,10 @@ By registering, you agree to follow these rules.
     setState(() => loading = true);
 
     try {
+      // =========================
+      // CREATE ACCOUNT
+      // =========================
+
       final credential =
           await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email,
@@ -179,56 +243,65 @@ By registering, you agree to follow these rules.
       final uid = credential.user!.uid;
 
       // =========================
-      // PROVIDER COLLECTION (OLD + NEW MERGED)
+      // UPLOAD PROFILE IMAGE
       // =========================
-      await FirebaseFirestore.instance
-          .collection('providers')
-          .doc(uid)
-          .set({
-        'uid': uid,
-        'name': name,
-        'email': email,
-        'phone': phone,
-        'service': selectedService,
 
-        // OLD + NEW location fields
-        'address': address,
-        'location': address,
+      String profileImage = "";
 
-        // role & status
-        'role': 'provider',
-        'isOnline': false,
-        'isApproved': false,
-        'isSuspended': false,
+      if (selectedImage != null) {
+        profileImage = await ProfileImageService.uploadProfileImage(
+          uid,
+          selectedImage!,
+          folder: "providers",
+        );
+      }
 
-        // stats
-        'rating': 0.0,
-        'earnings': 0.0,
-        'totalJobs': 0,
+      // =========================
+      // SAVE PROVIDER
+      // =========================
 
-        'createdAt': FieldValue.serverTimestamp(),
+      await FirebaseFirestore.instance.collection("providers").doc(uid).set({
+        "uid": uid,
+        "name": name,
+        "email": email,
+        "phone": phone,
+        "service": selectedService,
+        "address": address,
+        "location": location,
+        "profileImage": profileImage,
+        "role": "provider",
+        "status": "active",
+        "isOnline": false,
+        "isApproved": false,
+        "isSuspended": false,
+        "rating": 0.0,
+        "earnings": 0.0,
+        "totalJobs": 0,
+        "createdAt": FieldValue.serverTimestamp(),
       });
 
       // =========================
-      // USERS COLLECTION (OLD + NEW MERGED)
+      // SAVE USERS COLLECTION
       // =========================
-      await FirebaseFirestore.instance.collection('users').doc(uid).set({
-        'uid': uid,
-        'name': name,
-        'email': email,
-        'phone': phone,
 
-        'address': address,
-        'location': address,
-
-        'role': 'provider',
-        'createdAt': FieldValue.serverTimestamp(),
+      await FirebaseFirestore.instance.collection("users").doc(uid).set({
+        "uid": uid,
+        "name": name,
+        "email": email,
+        "phone": phone,
+        "address": address,
+        "location": location,
+        "profileImage": profileImage,
+        "role": "provider",
+        "createdAt": FieldValue.serverTimestamp(),
       });
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Provider Registered Successfully")),
+        const SnackBar(
+          content: Text("Provider Registered Successfully"),
+        ),
       );
 
       Navigator.pushAndRemoveUntil(
@@ -243,15 +316,23 @@ By registering, you agree to follow these rules.
       );
     } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? "Registration failed")),
+        SnackBar(
+          content: Text(
+            e.message ?? "Registration failed",
+          ),
+        ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
+        SnackBar(
+          content: Text("Error: $e"),
+        ),
       );
     }
 
-    if (mounted) setState(() => loading = false);
+    if (mounted) {
+      setState(() => loading = false);
+    }
   }
 
   @override
@@ -261,77 +342,184 @@ By registering, you agree to follow these rules.
     passwordController.dispose();
     phoneController.dispose();
     addressController.dispose();
+    locationController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Provider Registration")),
+      appBar: AppBar(
+        title: const Text("Provider Registration"),
+        centerTitle: true,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // =========================
+            // PROFILE PICTURE
+            // =========================
+            Center(
+              child: GestureDetector(
+                onTap: pickProfilePicture,
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 60,
+                      backgroundColor: Colors.grey.shade300,
+                      backgroundImage: selectedImage != null
+                          ? FileImage(selectedImage!)
+                          : null,
+                      child: selectedImage == null
+                          ? const Icon(
+                              Icons.camera_alt,
+                              size: 40,
+                              color: Colors.black54,
+                            )
+                          : null,
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      "Tap to upload profile picture",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 25),
+
+            // =========================
+            // NAME
+            // =========================
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(labelText: "Full Name or Business Name"),
+              decoration: const InputDecoration(
+                labelText: "Business Name / Full Name",
+                prefixIcon: Icon(Icons.person),
+                border: OutlineInputBorder(),
+              ),
             ),
-            const SizedBox(height: 10),
 
+            const SizedBox(height: 15),
+
+            // =========================
+            // EMAIL
+            // =========================
             TextField(
               controller: emailController,
-              decoration: const InputDecoration(labelText: "Email"),
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: "Email",
+                prefixIcon: Icon(Icons.email),
+                border: OutlineInputBorder(),
+              ),
             ),
-            const SizedBox(height: 10),
 
+            const SizedBox(height: 15),
+
+            // =========================
+            // PASSWORD
+            // =========================
             TextField(
               controller: passwordController,
               obscureText: true,
-              decoration: const InputDecoration(labelText: "Password"),
+              decoration: const InputDecoration(
+                labelText: "Password",
+                prefixIcon: Icon(Icons.lock),
+                border: OutlineInputBorder(),
+              ),
             ),
-            const SizedBox(height: 10),
 
+            const SizedBox(height: 15),
+
+            // =========================
+            // SERVICE
+            // =========================
             DropdownButtonFormField<String>(
               value: selectedService,
+              decoration: const InputDecoration(
+                labelText: "Service Category",
+                prefixIcon: Icon(Icons.design_services),
+                border: OutlineInputBorder(),
+              ),
               items: serviceCategories
-                  .map((s) => DropdownMenuItem(
-                        value: s,
-                        child: Text(s),
-                      ))
+                  .map(
+                    (service) => DropdownMenuItem(
+                      value: service,
+                      child: Text(service),
+                    ),
+                  )
                   .toList(),
-              onChanged: (v) => setState(() => selectedService = v!),
-              decoration: const InputDecoration(labelText: "Service"),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    selectedService = value;
+                  });
+                }
+              },
             ),
-            const SizedBox(height: 10),
 
+            const SizedBox(height: 15),
+
+            // =========================
+            // PHONE
+            // =========================
             TextField(
               controller: phoneController,
-              decoration: const InputDecoration(labelText: "Phone"),
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: "Phone Number",
+                prefixIcon: Icon(Icons.phone),
+                border: OutlineInputBorder(),
+              ),
             ),
-            const SizedBox(height: 10),
 
+            const SizedBox(height: 15),
+
+            // =========================
+            // ADDRESS
+            // =========================
             TextField(
               controller: addressController,
-              decoration: const InputDecoration(labelText: "Address"),
+              decoration: const InputDecoration(
+                labelText: "Address",
+                prefixIcon: Icon(Icons.home),
+                border: OutlineInputBorder(),
+              ),
+            ),
+
+            const SizedBox(height: 15),
+
+            // =========================
+            // LOCATION
+            // =========================
+            TextField(
+              controller: locationController,
+              decoration: const InputDecoration(
+                labelText: "Location",
+                prefixIcon: Icon(Icons.location_on),
+                border: OutlineInputBorder(),
+              ),
             ),
 
             const SizedBox(height: 20),
 
-            TextField(
-              controller: addressController,
-              decoration: const InputDecoration(labelText: "Location"),
-            ),
-
-            const SizedBox(height: 10),
-
-
-             // ========================= TERMS CHECKBOX (FIXED)
+            // =========================
+            // TERMS
+            // =========================
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Checkbox(
                   value: acceptedTerms,
-                  onChanged: (v) {
-                    setState(() => acceptedTerms = v ?? false);
+                  onChanged: (value) {
+                    setState(() {
+                      acceptedTerms = value ?? false;
+                    });
                   },
                 ),
                 Expanded(
@@ -355,16 +543,25 @@ By registering, you agree to follow these rules.
               ],
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 25),
 
+            // =========================
+            // REGISTER BUTTON
+            // =========================
             loading
-                ? const CircularProgressIndicator()
+                ? const Center(
+                    child: CircularProgressIndicator(),
+                  )
                 : SizedBox(
                     width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
+                    height: 55,
+                    child: ElevatedButton.icon(
                       onPressed: registerProvider,
-                      child: const Text("Register as Provider"),
+                      icon: const Icon(Icons.app_registration),
+                      label: const Text(
+                        "Register as Provider",
+                        style: TextStyle(fontSize: 16),
+                      ),
                     ),
                   ),
           ],
@@ -373,6 +570,3 @@ By registering, you agree to follow these rules.
     );
   }
 }
-
-
-

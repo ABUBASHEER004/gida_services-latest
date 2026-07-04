@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:gida_services/screens/request_screen.dart';
 
 class ServiceProvidersScreen extends StatelessWidget {
@@ -26,12 +27,10 @@ class ServiceProvidersScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(category),
       ),
-
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('providers')
             .snapshots(),
-
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return const Center(
@@ -40,21 +39,27 @@ class ServiceProvidersScreen extends StatelessWidget {
           }
 
           if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
           }
 
           final docs = snapshot.data!.docs;
 
-          /// ✅ STRICT FILTER
           final providers = docs.where((doc) {
             final data = doc.data() as Map<String, dynamic>;
-            final service = normalize(data['service'] ?? '');
+
+            final service =
+                normalize(data['service'] ?? '');
+
             return service == selectedCategory;
           }).toList();
 
           if (providers.isEmpty) {
             return const Center(
-              child: Text("No providers available for this category"),
+              child: Text(
+                "No providers available for this category",
+              ),
             );
           }
 
@@ -62,35 +67,67 @@ class ServiceProvidersScreen extends StatelessWidget {
             itemCount: providers.length,
             itemBuilder: (context, index) {
               final doc = providers[index];
-              final data = doc.data() as Map<String, dynamic>;
 
-              final isOnline = data['isOnline'] == true;
+              final data =
+                  doc.data() as Map<String, dynamic>;
+
+              final isOnline =
+                  data['isOnline'] == true;
 
               final String locationText =
-                 (data['location'] ?? '').toString().trim().isNotEmpty
-                   ? data['location']
+                  (data['location'] ?? '')
+                          .toString()
+                          .trim()
+                          .isNotEmpty
+                      ? data['location']
                       : "Location not available";
-                      
+
+              final String photoUrl =
+                  (data['photoUrl'] ?? '')
+                      .toString();
+
               return Card(
                 margin: const EdgeInsets.symmetric(
                   horizontal: 10,
                   vertical: 6,
                 ),
+                elevation: 3,
                 child: ListTile(
                   leading: Stack(
                     children: [
-                      const CircleAvatar(
-                        child: Icon(Icons.person),
+                      CircleAvatar(
+                        radius: 28,
+                        backgroundColor:
+                            Colors.grey.shade200,
+                        backgroundImage:
+                            photoUrl.isNotEmpty
+                                ? CachedNetworkImageProvider(
+                                    photoUrl,
+                                  )
+                                : null,
+                        child: photoUrl.isEmpty
+                            ? const Icon(
+                                Icons.person,
+                                size: 30,
+                              )
+                            : null,
                       ),
+
                       Positioned(
                         right: 0,
                         bottom: 0,
                         child: Container(
-                          width: 12,
-                          height: 12,
+                          width: 14,
+                          height: 14,
                           decoration: BoxDecoration(
-                            color: isOnline ? Colors.green : Colors.grey,
+                            color: isOnline
+                                ? Colors.green
+                                : Colors.grey,
                             shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white,
+                              width: 2,
+                            ),
                           ),
                         ),
                       ),
@@ -105,21 +142,30 @@ class ServiceProvidersScreen extends StatelessWidget {
                   ),
 
                   subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
                     children: [
-                      Text(data['service'] ?? ''),
+                      Text(
+                        data['service'] ?? '',
+                      ),
+
+                      const SizedBox(height: 2),
 
                       Text(
-                        isOnline ? "🟢 Available Now" : "⚪ Offline",
+                        isOnline
+                            ? "🟢 Available Now"
+                            : "⚪ Offline",
                         style: TextStyle(
-                          color: isOnline ? Colors.green : Colors.grey,
-                          fontWeight: FontWeight.bold,
+                          color: isOnline
+                              ? Colors.green
+                              : Colors.grey,
+                          fontWeight:
+                              FontWeight.bold,
                         ),
                       ),
 
                       const SizedBox(height: 4),
 
-                      /// 📍 LOCATION ADDED HERE
                       Text(
                         "📍 $locationText",
                         style: const TextStyle(
@@ -130,13 +176,19 @@ class ServiceProvidersScreen extends StatelessWidget {
                     ],
                   ),
 
-                  trailing: const Icon(Icons.arrow_forward_ios),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios,
+                    size: 18,
+                  ),
 
                   onTap: () {
                     if (user == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(
                         const SnackBar(
-                          content: Text("Please login to continue"),
+                          content: Text(
+                            "Please login to continue",
+                          ),
                         ),
                       );
                       return;
@@ -146,10 +198,14 @@ class ServiceProvidersScreen extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (_) => RequestScreen(
+                          providerPhoto: data['photoUrl'] ?? '',
                           userId: user.uid,
                           providerId: doc.id,
-                          providerName: data['name'] ?? '',
-                          category: data['service'] ?? category,
+                          providerName:
+                              data['name'] ?? '',
+                          category:
+                              data['service'] ??
+                                  category,
                         ),
                       ),
                     );
@@ -163,4 +219,3 @@ class ServiceProvidersScreen extends StatelessWidget {
     );
   }
 }
-

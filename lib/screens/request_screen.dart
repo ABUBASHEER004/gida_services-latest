@@ -7,6 +7,7 @@ import 'login_screen.dart';
 import 'chat_screen.dart';
 
 class RequestScreen extends StatefulWidget {
+  final String providerPhoto;
   final String userId;
   final String providerId;
   final String providerName;
@@ -14,6 +15,7 @@ class RequestScreen extends StatefulWidget {
 
   const RequestScreen({
     super.key,
+    required this.providerPhoto,
     required this.userId,
     required this.providerId,
     required this.providerName,
@@ -117,7 +119,6 @@ void initState() {
 
   saveFcmToken();
 
-  NotificationService.listenForChats(widget.userId);
 }
 
   @override
@@ -210,11 +211,18 @@ void initState() {
         'description': descriptionController.text.trim(),
         'status': 'pending',
         'completed': false,
-        'amount': 0,
-        'commission': 0,
-        'providerEarning': 0,
-        'commissionPaid': false,
-        'userConfirmedPaid': false,
+        'amount': 0, 
+
+'serviceFee': 300, 
+
+'serviceFeePaid': false,
+
+'serviceFeePaidAt': null,
+
+'userConfirmedPaid': false,
+
+'providerPaid': false,
+
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -328,14 +336,39 @@ final senderName = await getCurrentUserName();
   showDialog(
     context: context,
     builder: (_) => AlertDialog(
-      title: const Text("Confirm Payment"),
-      content: TextField(
-        controller: amountController,
-        keyboardType: TextInputType.number,
-        decoration: const InputDecoration(
-          labelText: "Enter Paid Amount",
-        ),
-      ),
+      title: const Text("Pay Platform Service Fee"),
+      content: const Column(
+  mainAxisSize: MainAxisSize.min,
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+
+    Text(
+      "Your service has been marked as completed.",
+    ),
+
+    SizedBox(height: 15),
+
+    Text(
+      "Please pay the Gida Services platform fee.",
+      style: TextStyle(fontWeight: FontWeight.bold),
+    ),
+
+    SizedBox(height: 10),
+
+    SelectableText(
+      "Amount: ₦300\n\n"
+      "Bank: Kuda Microfinance Bank\n"
+      "Account Number: 2082918233",
+      style: TextStyle(fontSize: 16),
+    ),
+
+    SizedBox(height: 15),
+
+    Text(
+      "After making the transfer, tap DONE.",
+    ),
+  ],
+),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
@@ -343,17 +376,23 @@ final senderName = await getCurrentUserName();
         ),
         ElevatedButton(
           onPressed: () async {
-            final amount =
-                double.tryParse(amountController.text.trim()) ?? 0;
+      
 
             await FirebaseFirestore.instance
-                .collection('requests')
-                .doc(requestId)
-                .set({
-              'userConfirmedPaid': true,
-              'userConfirmedPaidAmount': amount,
-              'userConfirmedAt': FieldValue.serverTimestamp(),
-            }, SetOptions(merge: true));
+    .collection('requests')
+    .doc(requestId)
+    .set({
+
+  'serviceFee': 300,
+
+  'serviceFeePaid': true,
+
+  'serviceFeePaidAt':
+      FieldValue.serverTimestamp(),
+
+  'userConfirmedPaid': true,
+
+}, SetOptions(merge: true));
 
             // 🔥 ADD THIS (important for admin realtime visibility)
             await FirebaseFirestore.instance
@@ -361,7 +400,7 @@ final senderName = await getCurrentUserName();
                 .doc(requestId)
                 .collection('history')
                 .add({
-              'action': 'User confirmed payment',
+              'action': 'User paid ₦300 platform service fee',
               'timestamp': FieldValue.serverTimestamp(),
             });
 
@@ -369,7 +408,11 @@ final senderName = await getCurrentUserName();
             Navigator.pop(context);
 
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Payment sent to admin")),
+              const SnackBar(
+  content: Text(
+    "Thank you! Your ₦300 platform service fee has been recorded.",
+  ),
+)
             );
           },
           child: const Text("Done"),
@@ -538,19 +581,25 @@ final senderName = await getCurrentUserName();
                             const SizedBox(height: 5),
                             statusBadge(status),
 
-                            if (status == 'completed')
-                              if (data['userConfirmedPaid'] == true)
-                                Text(
-                                  "Paid: ₦${data['userConfirmedPaidAmount'] ?? 0}",
-                                  style: const TextStyle(
-                                      color: Colors.green,
-                                      fontWeight: FontWeight.bold),
-                                )
-                              else
-                                ElevatedButton(
-                                  onPressed: () => confirmPaid(doc.id),
-                                  child: const Text("Confirm Payment"),
-                                ),
+                            if (status == 'completed') ...[
+  const SizedBox(height: 10),
+
+  if (data['serviceFeePaid'] == true)
+    const Text(
+      "✅ Platform service fee paid (₦300)",
+      style: TextStyle(
+        color: Colors.green,
+        fontWeight: FontWeight.bold,
+      ),
+    )
+  else
+    ElevatedButton(
+      onPressed: () => confirmPaid(doc.id),
+      child: const Text(
+        "Pay ₦300 Platform Fee",
+      ),
+    ),
+],
                           ],
                         ),
                       ),

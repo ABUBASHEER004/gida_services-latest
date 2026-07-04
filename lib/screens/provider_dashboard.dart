@@ -76,17 +76,8 @@ class _ProviderDashboardState extends State<ProviderDashboard>
 
     loadProviderData();
     saveFcmToken();
-    NotificationService.listenForChats(widget.providerId);
-    NotificationService.listenForAdminChats(widget.providerId);
-    NotificationService.listenForRequestUpdates(widget.providerId);
 
    
-FirebaseMessaging.onMessage.listen((message) {
-    NotificationService.showNotification(
-      message.notification?.title ?? "New Message",
-      message.notification?.body ?? "",
-    );
-  });
 }
 
   @override
@@ -333,7 +324,7 @@ FirebaseMessaging.onMessage.listen((message) {
   // COMPLETE JOB
   // =========================
   Future<void> markAsDone(String id, double amount) async {
-    const commissionRate = 0.30;
+    const commissionRate = 0.15;
 
     final commission = amount * commissionRate;
     final providerEarning = amount - commission;
