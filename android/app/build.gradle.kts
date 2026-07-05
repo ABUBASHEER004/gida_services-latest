@@ -1,12 +1,13 @@
 plugins {
     id("com.android.application")
+    id("org.jetbrains.kotlin.android")
     id("dev.flutter.flutter-gradle-plugin")
     id("com.google.gms.google-services")
 }
 
 android {
     namespace = "com.example.gida_services_new"
-   compileSdk = 36
+  compileSdk = 35
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -20,7 +21,7 @@ android {
     applicationId = "com.example.gida_services_new"
 
    minSdk = flutter.minSdkVersion
-   targetSdk = 36
+   targetSdk = 35
 
     versionCode = 2
     versionName = "1.0.1"
