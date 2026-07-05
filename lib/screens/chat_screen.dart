@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../services/chat_media_service.dart';
 import '../services/chat_audio_service.dart';
@@ -518,8 +519,11 @@ Future<void> _showDeleteOptions({
   required Map<String, dynamic> data,
 }) async {
 
-  final bool isMe =
-      data['senderId'] == widget.senderId;
+  final currentUserId =
+    FirebaseAuth.instance.currentUser?.uid ?? '';
+
+final bool isMe =
+    data['senderId'] == currentUserId;
 
   await showModalBottomSheet(
     context: context,
@@ -934,21 +938,36 @@ else if ((data['type'] ?? 'text') ==
       children: [
 
         ClipRRect(
-          borderRadius:
-              BorderRadius.circular(12),
+  borderRadius: BorderRadius.circular(12),
+  child: CachedNetworkImage(
+    imageUrl: data['thumbnailUrl'] ?? '',
+    width: 220,
+    height: 220,
+    fit: BoxFit.cover,
 
-          child:
-              CachedNetworkImage(
-            imageUrl:
-                data['thumbnailUrl'] ??
-                    '',
+    placeholder: (context, url) =>
+        const Center(
+          child: CircularProgressIndicator(),
+        ),
 
-            width: 220,
-            height: 220,
+    errorWidget: (context, url, error) {
+      debugPrint("Thumbnail error: $error");
 
-            fit: BoxFit.cover,
+      return Container(
+        width: 220,
+        height: 220,
+        color: Colors.black,
+        child: const Center(
+          child: Icon(
+            Icons.play_circle_fill,
+            color: Colors.white,
+            size: 60,
           ),
         ),
+      );
+    },
+  ),
+),
 
         const CircleAvatar(
           radius: 28,
