@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.gida_services_new"
-  compileSdk = 35
+  compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -21,7 +21,7 @@ android {
     applicationId = "com.example.gida_services_new"
 
    minSdk = flutter.minSdkVersion
-   targetSdk = 35
+   targetSdk = 36
 
     versionCode = 2
     versionName = "1.0.1"
