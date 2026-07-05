@@ -243,18 +243,18 @@ By registering you agree to these conditions.
       final uid = credential.user!.uid;
 
       // =========================
-      // UPLOAD PROFILE IMAGE
-      // =========================
+      String? profileImage;
 
-      String profileImage = "";
-
-      if (selectedImage != null) {
-        profileImage = await ProfileImageService.uploadProfileImage(
-          uid,
-          selectedImage!,
-          folder: "providers",
-        );
-      }
+if (selectedImage != null) {
+  try {
+   profileImage = await ProfileImageService.uploadProfileImage(
+  uid: uid,
+  image: selectedImage!,
+);
+  } catch (e) {
+    debugPrint("Image upload failed: $e");
+  }
+}
 
       // =========================
       // SAVE PROVIDER

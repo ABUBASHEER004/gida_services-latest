@@ -498,11 +498,21 @@ final senderName = await getCurrentUserName();
         online = data['isOnline'] ?? false;
         lastSeen = data['lastSeen'];
       }
+      final userData =
+    snapshot.data!.data() as Map<String, dynamic>;
+
+final profileImage = userData['profileImage'] ?? '';
 
       return ListTile(
-        leading: const CircleAvatar(
-          child: Icon(Icons.person),
-        ),
+        leading: CircleAvatar(
+  radius: 22,
+  backgroundImage: profileImage.isNotEmpty
+      ? NetworkImage(profileImage)
+      : null,
+  child: profileImage.isEmpty
+      ? const Icon(Icons.person)
+      : null,
+),
 
         title: Text(widget.providerName),
 

@@ -359,6 +359,14 @@ By continuing, you agree to follow all rules of this platform.
       );
       return;
     }
+    if (selectedImage == null) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text("Please select a profile picture"),
+    ),
+  );
+  return;
+}
 
     setState(() => loading = true);
 
@@ -367,13 +375,20 @@ By continuing, you agree to follow all rules of this platform.
           .createUserWithEmailAndPassword(email: email, password: password);
 
       final uid = credential.user!.uid;
+      final profileImageUrl =
+    await ProfileImageService.uploadProfileImage(
+  uid: uid,
+  image: selectedImage!,
+);
       await saveFCMToken(uid);
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
+  'profileImage': profileImageUrl,
         'name': name,
         'email': email,
         'phone': phone,
         'address': address,
         'location': location,
+        'profileImage': profileImageUrl,
         'role': 'user',
         'status': 'active',
         'isOnline': true,
@@ -420,6 +435,31 @@ By continuing, you agree to follow all rules of this platform.
         child: Column(
           children: [
             if (isRegister)
+            if (isRegister)
+  Column(
+    children: [
+      GestureDetector(
+        onTap: pickProfilePicture,
+        child: CircleAvatar(
+          radius: 55,
+          backgroundColor: Colors.grey.shade300,
+          backgroundImage: selectedImage != null
+              ? FileImage(selectedImage!)
+              : null,
+          child: selectedImage == null
+              ? const Icon(
+                  Icons.camera_alt,
+                  size: 40,
+                  color: Colors.black54,
+                )
+              : null,
+        ),
+      ),
+      const SizedBox(height: 8),
+      const Text("Tap to add profile picture"),
+      const SizedBox(height: 20),
+    ],
+  ),
               TextField(
                 controller: nameController,
                 decoration: const InputDecoration(labelText: "Name"),

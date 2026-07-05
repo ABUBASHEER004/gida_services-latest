@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -8,63 +9,101 @@ import 'package:path_provider/path_provider.dart';
 class ProfileImageService {
   static final ImagePicker _picker = ImagePicker();
 
-  /// Pick from Gallery
+  // ==========================================
+  // PICK FROM GALLERY
+  // ==========================================
   static Future<File?> pickFromGallery() async {
-    final XFile? image = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 90,
-    );
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 100,
+      );
 
-    if (image == null) return null;
+      if (image == null) return null;
 
-    return File(image.path);
+      return File(image.path);
+    } catch (e) {
+      debugPrint("Gallery Error: $e");
+      return null;
+    }
   }
 
-  /// Take Photo
+  // ==========================================
+  // TAKE PHOTO
+  // ==========================================
   static Future<File?> pickFromCamera() async {
-    final XFile? image = await _picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 90,
-    );
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 100,
+      );
 
-    if (image == null) return null;
+      if (image == null) return null;
 
-    return File(image.path);
+      return File(image.path);
+    } catch (e) {
+      debugPrint("Camera Error: $e");
+      return null;
+    }
   }
 
-  /// Compress image
-  static Future<File> compress(File file) async {
-    final dir = await getTemporaryDirectory();
+  // ==========================================
+  // COMPRESS IMAGE
+  // ==========================================
+  static Future<File> compress(File image) async {
+    try {
+      final tempDir = await getTemporaryDirectory();
 
-    final target =
-        "${dir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg";
+      final targetPath =
+          "${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg";
 
-    final compressed =
-        await FlutterImageCompress.compressAndGetFile(
-      file.absolute.path,
-      target,
-      quality: 70,
-    );
+      final XFile? compressed =
+          await FlutterImageCompress.compressAndGetFile(
+        image.absolute.path,
+        targetPath,
+        quality: 70,
+        minWidth: 1080,
+        minHeight: 1080,
+      );
 
-    return File(compressed!.path);
+      if (compressed == null) {
+        return image;
+      }
+
+      return File(compressed.path);
+    } catch (e) {
+      debugPrint("Compression Error: $e");
+      return image;
+    }
   }
 
-  /// Upload image to Firebase Storage
- static Future<String> uploadProfileImage(
-  String uid,
-  File image, {
-  String folder = "users",
-}) async {
-    final compressed = await compress(image);
+  // ==========================================
+  // UPLOAD PROFILE IMAGE
+  // ==========================================
+  static Future<String?> uploadProfileImage({
+    required String uid,
+    required File image,
+  }) async {
+    try {
+      final compressed = await compress(image);
 
-    final ref = FirebaseStorage.instance
-        .ref()
-       .child(folder)
-        .child(uid)
-        .child("profile.jpg");
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child("profile_images")
+          .child(uid)
+          .child("profile.jpg");
 
-    await ref.putFile(compressed);
+      await ref.putFile(compressed);
 
-    return await ref.getDownloadURL();
+      final url = await ref.getDownloadURL();
+
+      debugPrint("Profile Image Uploaded:");
+      debugPrint(url);
+
+      return url;
+    } catch (e) {
+      debugPrint("Profile Upload Error: $e");
+      return null;
+    }
   }
 }
